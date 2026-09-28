@@ -12,11 +12,13 @@ def main():
 
     with sync_playwright() as p:
 
-        browser = p.chromium.launch(
-            headless=True
-        )
+        browser = p.chromium.launch(headless=True)
 
         page = browser.new_page()
+
+        # -------------------------
+        # LOGIN
+        # -------------------------
 
         print("Opening WeWorld...")
 
@@ -26,69 +28,145 @@ def main():
             timeout=60000
         )
 
-        print("Login page:", page.url)
-
-        # -------------------------
-        # FILL LOGIN FORM
-        # -------------------------
-
-        print("Entering username...")
-
         page.locator(
             'input[name="j_username"]'
         ).fill(username)
 
-        print("Entering password...")
-
         page.locator(
             'input[name="j_password"]'
         ).fill(password)
-
-        print("Credentials entered.")
-
-        # -------------------------
-        # CLICK LOGIN
-        # -------------------------
-
-        print("Clicking Login...")
 
         page.get_by_role(
             "button",
             name="Login"
         ).click()
 
-        # Give the portal time to process login
         page.wait_for_timeout(5000)
 
-        print("\n========== LOGIN RESULT ==========")
-
-        print("Current URL:")
-        print(page.url)
-
-        print("\nPage title:")
-        print(page.title())
-
-        print("\nPage text:")
-
-        text = page.locator("body").inner_text()
-
-        print(text[:12000])
+        print("Logged in.")
+        print("Dashboard URL:", page.url)
 
         # -------------------------
-        # CHECK WHETHER STILL ON LOGIN
+        # FIND TODAY'S SCHEDULE
         # -------------------------
 
-        username_field = page.locator(
-            'input[name="j_username"]'
+        print("\nSearching for TODAY'S SCHEDULE...")
+
+        schedule_heading = page.get_by_text(
+            "TODAY'S SCHEDULE",
+            exact=False
         )
 
-        if username_field.count() > 0 and username_field.is_visible():
+        print(
+            "Schedule heading count:",
+            schedule_heading.count()
+        )
 
-            print("\n❌ LOGIN APPEARS TO HAVE FAILED.")
+        if schedule_heading.count() == 0:
+            print("❌ Could not find Today's Schedule")
+            browser.close()
+            return
 
-        else:
+        heading = schedule_heading.first
 
-            print("\n✅ LOGIN PAGE IS NO LONGER VISIBLE.")
+        print("✅ Today's Schedule found.")
+
+        # -------------------------
+        # INSPECT PARENT ELEMENTS
+        # -------------------------
+
+        print("\n--- PARENT STRUCTURE ---")
+
+        current = heading
+
+        for level in range(6):
+
+            try:
+
+                tag = current.evaluate(
+                    "(el) => el.tagName"
+                )
+
+                classes = current.get_attribute(
+                    "class"
+                )
+
+                element_id = current.get_attribute(
+                    "id"
+                )
+
+                print(
+                    f"Level {level}: "
+                    f"TAG={tag}, "
+                    f"ID={element_id}, "
+                    f"CLASS={classes}"
+                )
+
+                current = current.locator("..")
+
+            except Exception as e:
+
+                print(
+                    "Could not inspect level:",
+                    e
+                )
+
+                break
+
+        # -------------------------
+        # INSPECT NEARBY TABLES
+        # -------------------------
+
+        print("\n--- TABLES ON PAGE ---")
+
+        tables = page.locator("table")
+
+        print(
+            "Number of tables:",
+            tables.count()
+        )
+
+        for i in range(tables.count()):
+
+            table = tables.nth(i)
+
+            try:
+
+                text = table.inner_text()
+
+                if any(
+                    keyword in text.upper()
+                    for keyword in [
+                        "TODAY'S SCHEDULE",
+                        "PTI",
+                        "EWM",
+                        "YOGA",
+                        "CLASS ROOM"
+                    ]
+                ):
+
+                    print(
+                        f"\n*** POSSIBLE SCHEDULE TABLE {i} ***"
+                    )
+
+                    print(text)
+
+                    print(
+                        "\nHTML:"
+                    )
+
+                    print(
+                        table.evaluate(
+                            "(el) => el.outerHTML"
+                        )[:15000]
+                    )
+
+            except Exception as e:
+
+                print(
+                    f"Could not inspect table {i}:",
+                    e
+                )
 
         browser.close()
 
