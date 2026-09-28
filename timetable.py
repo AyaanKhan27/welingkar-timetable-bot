@@ -5,9 +5,42 @@ from playwright.sync_api import sync_playwright
 WEWORLD_URL = "https://weworld.welingkar.org/home.htm"
 
 
+def inspect_frame(frame):
+    print("\n========================================")
+    print("FRAME URL:", frame.url)
+    print("========================================")
+
+    try:
+        inputs = frame.locator("input")
+        count = inputs.count()
+
+        print("INPUT COUNT:", count)
+
+        for i in range(count):
+            element = inputs.nth(i)
+
+            print(f"\nInput {i + 1}")
+
+            for attribute in [
+                "type",
+                "name",
+                "id",
+                "placeholder",
+                "autocomplete",
+            ]:
+                try:
+                    print(
+                        f"{attribute}:",
+                        element.get_attribute(attribute)
+                    )
+                except Exception:
+                    pass
+
+    except Exception as e:
+        print("Could not inspect inputs:", e)
+
+
 def main():
-    username = os.environ["WEWORLD_USERNAME"]
-    password = os.environ["WEWORLD_PASSWORD"]
 
     with sync_playwright() as p:
 
@@ -18,55 +51,31 @@ def main():
         page = browser.new_page()
 
         print("Opening WeWorld...")
+
         page.goto(
             WEWORLD_URL,
             wait_until="networkidle",
             timeout=60000
         )
 
-        print("Initial URL:", page.url)
-        print("Initial title:", page.title())
+        print("\nPAGE URL:")
+        print(page.url)
 
-        # -------------------------
-        # LOGIN
-        # -------------------------
+        print("\nPAGE TITLE:")
+        print(page.title())
 
-        print("\nLogging into WeWorld...")
+        print("\nNUMBER OF FRAMES:")
+        print(len(page.frames))
 
-        page.locator("#j_username").fill(username)
-        page.locator("#j_password").fill(password)
+        for frame in page.frames:
+            inspect_frame(frame)
 
-        page.get_by_role(
-            "button",
-            name="Login"
-        ).click()
+        print("\n\n--- PAGE TEXT ---")
 
-        # Wait for navigation / dashboard
-        page.wait_for_load_state(
-            "networkidle",
-            timeout=60000
-        )
-
-        print("\n--- AFTER LOGIN ---")
-        print("URL:", page.url)
-        print("Title:", page.title())
-
-        # -------------------------
-        # BASIC LOGIN CHECK
-        # -------------------------
-
-        if page.locator("#j_username").count() > 0:
-            print("WARNING: Login page is still visible.")
-            print("Login may have failed.")
-        else:
-            print("Login page no longer visible.")
-            print("Login may have succeeded.")
-
-        # Print visible page text for us to inspect
-        text = page.locator("body").inner_text()
-
-        print("\n--- PAGE TEXT ---")
-        print(text[:12000])
+        try:
+            print(page.locator("body").inner_text()[:10000])
+        except Exception as e:
+            print("Could not read body:", e)
 
         browser.close()
 
