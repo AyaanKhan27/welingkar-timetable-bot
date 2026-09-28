@@ -1,10 +1,13 @@
-name: Get Telegram Chat ID
+name: Welingkar Timetable Bot
 
 on:
   workflow_dispatch:
 
+  schedule:
+    - cron: "*/5 * * * *"
+
 jobs:
-  telegram:
+  bot:
     runs-on: ubuntu-latest
 
     steps:
@@ -16,12 +19,19 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Install requests
+      - name: Install Python packages
         run: |
-          pip install requests
+          pip install -r requirements.txt
 
-      - name: Get Telegram updates
-        env:
-          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+      - name: Install Playwright Chromium
         run: |
-          python telegram_setup.py
+          playwright install --with-deps chromium
+
+      - name: Run timetable bot
+        env:
+          WEWORLD_USERNAME: ${{ secrets.WEWORLD_USERNAME }}
+          WEWORLD_PASSWORD: ${{ secrets.WEWORLD_PASSWORD }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: |
+          python bot.py
