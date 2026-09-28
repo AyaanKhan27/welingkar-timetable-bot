@@ -1,4 +1,4 @@
-name: Test WeWorld Browser
+name: Test WeWorld Login
 
 on:
   workflow_dispatch:
@@ -24,6 +24,9 @@ jobs:
         run: |
           playwright install --with-deps chromium
 
-      - name: Test WeWorld
+      - name: Login to WeWorld
+        env:
+          WEWORLD_USERNAME: ${{ secrets.WEWORLD_USERNAME }}
+          WEWORLD_PASSWORD: ${{ secrets.WEWORLD_PASSWORD }}
         run: |
           python timetable.py
