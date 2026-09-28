@@ -4,7 +4,11 @@ on:
   workflow_dispatch:
 
   schedule:
-    - cron: "*/5 * * * *"
+    - cron: "2-59/5 * * * *"
+
+concurrency:
+  group: timetable-bot
+  cancel-in-progress: true
 
 jobs:
   bot:
