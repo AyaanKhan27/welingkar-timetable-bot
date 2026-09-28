@@ -1,10 +1,10 @@
-name: Test WeWorld Login
+name: Get Telegram Chat ID
 
 on:
   workflow_dispatch:
 
 jobs:
-  test:
+  telegram:
     runs-on: ubuntu-latest
 
     steps:
@@ -16,17 +16,12 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Install Python packages
+      - name: Install requests
         run: |
-          pip install -r requirements.txt
+          pip install requests
 
-      - name: Install Playwright Chromium
-        run: |
-          playwright install --with-deps chromium
-
-      - name: Login to WeWorld
+      - name: Get Telegram updates
         env:
-          WEWORLD_USERNAME: ${{ secrets.WEWORLD_USERNAME }}
-          WEWORLD_PASSWORD: ${{ secrets.WEWORLD_PASSWORD }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
         run: |
-          python timetable.py
+          python telegram_setup.py
