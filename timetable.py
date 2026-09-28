@@ -5,42 +5,10 @@ from playwright.sync_api import sync_playwright
 WEWORLD_URL = "https://weworld.welingkar.org/home.htm"
 
 
-def inspect_frame(frame):
-    print("\n========================================")
-    print("FRAME URL:", frame.url)
-    print("========================================")
-
-    try:
-        inputs = frame.locator("input")
-        count = inputs.count()
-
-        print("INPUT COUNT:", count)
-
-        for i in range(count):
-            element = inputs.nth(i)
-
-            print(f"\nInput {i + 1}")
-
-            for attribute in [
-                "type",
-                "name",
-                "id",
-                "placeholder",
-                "autocomplete",
-            ]:
-                try:
-                    print(
-                        f"{attribute}:",
-                        element.get_attribute(attribute)
-                    )
-                except Exception:
-                    pass
-
-    except Exception as e:
-        print("Could not inspect inputs:", e)
-
-
 def main():
+
+    username = os.environ["WEWORLD_USERNAME"]
+    password = os.environ["WEWORLD_PASSWORD"]
 
     with sync_playwright() as p:
 
@@ -58,24 +26,69 @@ def main():
             timeout=60000
         )
 
-        print("\nPAGE URL:")
+        print("Login page:", page.url)
+
+        # -------------------------
+        # FILL LOGIN FORM
+        # -------------------------
+
+        print("Entering username...")
+
+        page.locator(
+            'input[name="j_username"]'
+        ).fill(username)
+
+        print("Entering password...")
+
+        page.locator(
+            'input[name="j_password"]'
+        ).fill(password)
+
+        print("Credentials entered.")
+
+        # -------------------------
+        # CLICK LOGIN
+        # -------------------------
+
+        print("Clicking Login...")
+
+        page.get_by_role(
+            "button",
+            name="Login"
+        ).click()
+
+        # Give the portal time to process login
+        page.wait_for_timeout(5000)
+
+        print("\n========== LOGIN RESULT ==========")
+
+        print("Current URL:")
         print(page.url)
 
-        print("\nPAGE TITLE:")
+        print("\nPage title:")
         print(page.title())
 
-        print("\nNUMBER OF FRAMES:")
-        print(len(page.frames))
+        print("\nPage text:")
 
-        for frame in page.frames:
-            inspect_frame(frame)
+        text = page.locator("body").inner_text()
 
-        print("\n\n--- PAGE TEXT ---")
+        print(text[:12000])
 
-        try:
-            print(page.locator("body").inner_text()[:10000])
-        except Exception as e:
-            print("Could not read body:", e)
+        # -------------------------
+        # CHECK WHETHER STILL ON LOGIN
+        # -------------------------
+
+        username_field = page.locator(
+            'input[name="j_username"]'
+        )
+
+        if username_field.count() > 0 and username_field.is_visible():
+
+            print("\n❌ LOGIN APPEARS TO HAVE FAILED.")
+
+        else:
+
+            print("\n✅ LOGIN PAGE IS NO LONGER VISIBLE.")
 
         browser.close()
 
